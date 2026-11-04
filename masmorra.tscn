@@ -1,0 +1,179 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://personagem.gd" id="1"]
+[ext_resource type="Script" path="res://recargas.gd" id="3"]
+[ext_resource type="PackedScene" path="res://assets/mago.glb" id="4"]
+[ext_resource type="PackedScene" path="res://bau.tscn" id="5"]
+[ext_resource type="Script" path="res://inventario.gd" id="6"]
+
+[sub_resource type="Shader" id="FloorShader"]
+code = "shader_type spatial;
+
+varying vec2 floor_position;
+
+void vertex() {
+	floor_position = VERTEX.xz;
+}
+
+void fragment() {
+	vec2 tile = floor(floor_position);
+	float tone = fract(sin(dot(tile, vec2(12.9898, 78.233))) * 43758.5453);
+	vec2 tile_edge = abs(fract(floor_position + 0.5) - 0.5);
+	float edge = min(tile_edge.x, tile_edge.y);
+	float width = max(length(fwidth(floor_position)), 0.001);
+	float grout = 1.0 - smoothstep(0.016 - width, 0.016 + width, edge);
+	vec3 stone = mix(vec3(0.25, 0.28, 0.32), vec3(0.39, 0.42, 0.46), tone);
+	vec3 tiled = mix(stone, vec3(0.12, 0.14, 0.16), grout);
+	vec2 marker_edge = abs(fract(floor_position / 5.0 + 0.5) - 0.5) * 5.0;
+	float marker = 1.0 - smoothstep(0.045 - width, 0.045 + width, min(marker_edge.x, marker_edge.y));
+	ALBEDO = mix(tiled, vec3(0.53, 0.39, 0.21), marker);
+	ROUGHNESS = 0.9;
+}
+"
+
+[sub_resource type="ShaderMaterial" id="FloorMaterial"]
+shader = SubResource("FloorShader")
+
+[sub_resource type="PlaneMesh" id="FloorMesh"]
+material = SubResource("FloorMaterial")
+size = Vector2(80, 80)
+
+[sub_resource type="BoxShape3D" id="FloorShape"]
+size = Vector3(80, 1, 80)
+
+[sub_resource type="CapsuleShape3D" id="PlayerShape"]
+radius = 0.35
+height = 1.8
+
+[sub_resource type="Environment" id="LuzAmbiente"]
+ambient_light_source = 3
+ambient_light_color = Color(0.76, 0.81, 0.92, 1)
+ambient_light_energy = 0.45
+
+[node name="CenaInicial" type="Node3D"]
+
+[node name="Ambiente" type="WorldEnvironment" parent="."]
+environment = SubResource("LuzAmbiente")
+
+[node name="Luz" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-55, -30, 0)
+shadow_enabled = true
+
+[node name="Chao" type="StaticBody3D" parent="."]
+
+[node name="Piso" type="MeshInstance3D" parent="Chao"]
+mesh = SubResource("FloorMesh")
+
+[node name="Colisao" type="CollisionShape3D" parent="Chao"]
+position = Vector3(0, -0.5, 0)
+shape = SubResource("FloorShape")
+
+[node name="Personagem" type="CharacterBody3D" parent="."]
+position = Vector3(0, 0.92, 0)
+script = ExtResource("1")
+
+[node name="Colisao" type="CollisionShape3D" parent="Personagem"]
+shape = SubResource("PlayerShape")
+
+[node name="PivoCamera" type="Node3D" parent="Personagem"]
+position = Vector3(0, 0.65, 0)
+
+[node name="Camera3D" type="Camera3D" parent="Personagem/PivoCamera"]
+position = Vector3(1.1, -0.4, 3.35)
+current = true
+
+[node name="Mago" parent="Personagem" instance=ExtResource("4")]
+position = Vector3(0, -0.9, 0)
+rotation_degrees = Vector3(0, 180, 0)
+
+[node name="BauVarinha" parent="." instance=ExtResource("5")]
+position = Vector3(0, 0, -4)
+gear_items = Array[int]([3, 4])
+
+[node name="BauCajado" parent="." instance=ExtResource("5")]
+position = Vector3(5, 0, -8)
+rotation_degrees = Vector3(0, -18, 0)
+weapon_slot = 1
+gear_items = Array[int]([5, 6])
+
+[node name="BauGrimorio" parent="." instance=ExtResource("5")]
+position = Vector3(-5, 0, -11)
+rotation_degrees = Vector3(0, 22, 0)
+weapon_slot = 2
+gear_items = Array[int]([7, 8])
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Mira" type="Control" parent="HUD"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+mouse_filter = 2
+
+[node name="Horizontal" type="ColorRect" parent="HUD/Mira"]
+offset_left = -7.0
+offset_top = -1.0
+offset_right = 7.0
+offset_bottom = 1.0
+mouse_filter = 2
+
+[node name="Vertical" type="ColorRect" parent="HUD/Mira"]
+offset_left = -1.0
+offset_top = -7.0
+offset_right = 1.0
+offset_bottom = 7.0
+mouse_filter = 2
+
+[node name="Recargas" type="Control" parent="HUD"]
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -44.0
+offset_top = -68.0
+offset_right = 44.0
+offset_bottom = -30.0
+mouse_filter = 2
+script = ExtResource("3")
+
+[node name="Interacao" type="Label" parent="HUD"]
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -205.0
+offset_top = -111.0
+offset_right = 205.0
+offset_bottom = -83.0
+theme_override_colors/font_outline_color = Color(0.04, 0.05, 0.07, 1)
+theme_override_constants/outline_size = 7
+horizontal_alignment = 1
+
+[node name="Mochila" type="Label" parent="HUD"]
+offset_left = 20.0
+offset_top = 16.0
+theme_override_colors/font_outline_color = Color(0.04, 0.05, 0.07, 1)
+theme_override_constants/outline_size = 7
+text = "Mochila [B]"
+
+
+[node name="Inventario" type="Control" parent="HUD"]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("6")
+
+
+[node name="ItensProximos" type="Label" parent="HUD"]
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -208.0
+offset_top = -90.0
+offset_right = -22.0
+offset_bottom = 20.0
+theme_override_colors/font_outline_color = Color(0.04, 0.05, 0.07, 1)
+theme_override_constants/outline_size = 7
+theme_override_font_sizes/font_size = 15
